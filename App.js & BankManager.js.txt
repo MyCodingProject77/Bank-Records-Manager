@@ -1,0 +1,202 @@
+
+
+
+       App.js code
+
+       
+       import React from "react";
+import BankManager from "./BankManager";
+
+function App() {
+  return (
+    <div>
+      <BankManager />
+    </div>
+  );
+}
+
+export default App;
+
+
+
+
+
+
+      BankManager.js code
+
+       
+
+       
+
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+
+const BankManager = () => {
+  const [accounts, setAccounts] = useState([]);
+  const [formData, setFormData] = useState({
+    bank_name: "",
+    routing_no: "",
+    account_no: "",
+    account_name: "",
+    branch_name: "",
+    sub_branch: "",
+    total_book: "",
+    total_leaves: "",
+  });
+  const [editingId, setEditingId] = useState(null);
+
+  const api = "http://127.0.0.1:8000/api/bank-accounts";
+
+  useEffect(() => {
+    fetchAccounts();
+  }, []);
+
+  const fetchAccounts = async () => {
+    try {
+      const response = await axios.get(api);
+      setAccounts(response.data);
+    } catch (error) {
+      console.error("Error fetching accounts:", error);
+    }
+  };
+
+  const handleChange = (e) => {
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      if (editingId) {
+        await axios.put(`${api}/${editingId}`, formData);
+      } else {
+        await axios.post(api, formData);
+      }
+
+      resetForm();
+      fetchAccounts();
+    } catch (error) {
+      console.error("Error submitting form:", error);
+    }
+  };
+
+  const handleEdit = (account) => {
+    setFormData(account);
+    setEditingId(account.id);
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`${api}/${id}`);
+      fetchAccounts();
+    } catch (error) {
+      console.error("Error deleting account:", error);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      bank_name: "",
+      routing_no: "",
+      account_no: "",
+      account_name: "",
+      branch_name: "",
+      sub_branch: "",
+      total_book: "",
+      total_leaves: "",
+    });
+    setEditingId(null);
+  };
+
+  return (
+    <div style={{ maxWidth: 800, margin: "auto", padding: 20 }}>
+      <h2>🏦 Bank Records Manager</h2>
+      <form onSubmit={handleSubmit} style={{ marginBottom: 20 }}>
+        {Object.keys(formData).map((key) => (
+          <div key={key} style={{ marginBottom: 10 }}>
+            <label style={{ display: "block", fontWeight: "bold" }}>
+              {key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+            </label>
+            <input
+              type="text"
+              name={key}
+              value={formData[key]}
+              onChange={handleChange}
+              required
+              style={{ width: "100%", padding: 8, boxSizing: "border-box" }}
+            />
+          </div>
+        ))}
+        <button type="submit" style={{ marginRight: 10 }}>
+          {editingId ? "Update" : "Add"}
+        </button>
+        <button type="button" onClick={resetForm}>
+          Clear
+        </button>
+      </form>
+
+      <h3>📋 All Bank Records</h3>
+      <table border="1" width="100%" cellPadding={8} style={{ borderCollapse: "collapse" }}>
+        <thead style={{ backgroundColor: "#f0f0f0" }}>
+          <tr>
+            <th>Bank Name</th>
+            <th>Routing No</th>
+            <th>Account No</th>
+            <th>Account Name</th>
+            <th>Branch</th>
+            <th>Sub Branch</th>
+            <th>Total Book</th>
+            <th>Total Leaves</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {accounts.map((acc) => (
+            <tr key={acc.id} onClick={() => handleEdit(acc)} style={{ cursor: "pointer" }}>
+              <td>{acc.bank_name}</td>
+              <td>{acc.routing_no}</td>
+              <td>{acc.account_no}</td>
+              <td>{acc.account_name}</td>
+              <td>{acc.branch_name}</td>
+              <td>{acc.sub_branch}</td>
+              <td>{acc.total_book}</td>
+              <td>{acc.total_leaves}</td>
+              <td>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEdit(acc);
+                  }}
+                  style={{ marginRight: 5 }}
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(acc.id);
+                  }}
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+          ))}
+          {accounts.length === 0 && (
+            <tr>
+              <td colSpan="9" align="center">
+                No records found.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+export default BankManager;
